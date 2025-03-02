@@ -26,9 +26,9 @@ PYBIND11_MODULE(OptGemm, m)
                     long A, int ldA, OptGemmOp opA,
                     long B, int ldB, OptGemmOp opB,
                     long C, int ldC) {
-    // gemm(M, N, K, alpha, beta,
-    //      (const void*)A, ldA, opA,
-    //      (const void*)B, ldB, opB,
-    //      (void*)C, ldC);
+    gemm(M, N, K, alpha, beta,
+         (const void*)A, ldA, opA,
+         (const void*)B, ldB, opB,
+         (void*)C, ldC);
   }, "HGEMM");
 }
