@@ -1,5 +1,5 @@
-#include "src/ampere/kernels/kernel_decl.h"
+#include "ampere/kernels/kernel_decl.h"
 
-void main() {
+int main() {
     printf("C\n");
 }

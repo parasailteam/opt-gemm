@@ -32,15 +32,17 @@ class KernelConfig:
     return f"ampere_{self.elemA}_{self.elemB}_{self.elemC}_{self.cta[0]}x{self.cta[1]}x{self.cta[2]}_{self.warp[0]}x{self.warp[1]}x{self.warp[2]}_{self.stages}_{self.split_k_slices}_{self.opA}{self.opB}{self.opC}"
 
 def generate_kernels():
-  kernel_out_dir = "src/ampere/kernels/"
-  kernel_decl_file = "src/ampere/kernels/kernel_decl.h"
+  kernel_out_dir = os.path.join(os.path.dirname(__file__), "ampere/kernels/")
+  kernel_decl_file = os.path.join(kernel_out_dir, "kernel_decl.h")
+
   if not os.path.exists(kernel_out_dir):
     os.makedirs(kernel_out_dir, exist_ok=True)
 
   kernels = [KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1)]
-  kernel_includes = ['#include "src/ampere/ampere_gemm_kernel.h"']
+  kernel_includes = ['#include "ampere/ampere_gemm_kernel.h"']
   kernel_decls = kernel_includes
   kernel_array = ["void* AllAmpereKernels[] = {"]
+  kernel_cmake = []
 
   for kernel in kernels:
     kernel_decls += ["extern " + kernel.template_decl() + " " + kernel.object_name() + ";"]
@@ -49,12 +51,17 @@ def generate_kernels():
     with open(os.path.join(kernel_out_dir, kernel.object_name()+".cu"), "w") as f:
       kernel_object_init = kernel_includes + [kernel.template_decl() + " " + kernel.object_name() + ";"]
       f.write("\n".join(kernel_object_init))
-  
-  kernel_array += ["}"]
+
+    kernel_cmake += [f"${{CUDA}}/ampere/kernels/{kernel.object_name()+'.cu'}"]
+
+  kernel_array += ["};"]
 
   with open(kernel_decl_file, "w") as decl_file:
     decl_file.write("\n".join(kernel_decls) + "\n\n" + "\n".join(kernel_array))
   
+  with open(os.path.join(kernel_out_dir, "kernels.cmake"), "w") as f:
+    f.write(f'set(CUDA_KERNELS {" ".join(kernel_cmake)})')
+
 if __name__ == "__main__":
   from argparse import RawTextHelpFormatter
 

@@ -1,7 +1,7 @@
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm.h"
 
-#include "src/opt_gemm.h"
+#include "opt_gemm.h"
 
 #pragma once
 
