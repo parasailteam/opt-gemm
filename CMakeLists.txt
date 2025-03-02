@@ -72,6 +72,7 @@ set(CUDA ${SRC}/cuda)
 
 set(KERNEL_HEADER_FILES)
 set(GEMM_LIB_DIR)
+set(CUDA_SOURCES)
 
 if(ENABLE_CUDA)
   if (FULL_TUNE)
@@ -102,7 +103,10 @@ if(ENABLE_CUDA)
 
   set(CUDA_HEADER_FILES
       ${CUDA_HEADER_FILES}
-      ${CUDA}/ampere/ampere_gemm_kernel.h
+      ${CUDA}/ampere/ampere_gemm_kernel.h)
+
+  set(CUDA_SOURCES
+      ${CUDA}/cuda_backend.cu
       ${CUDA_KERNELS})
 else()
   set(CUDA_HEADER_FILES)
@@ -113,6 +117,7 @@ set(HEADER_FILES
     )
 
 set(SOURCES
+    ${CUDA_SOURCES}
     ${SRC}/opt_gemm.cpp)
 
 if (PYMODULE)
@@ -121,7 +126,7 @@ if (PYMODULE)
   pybind11_add_module(OptGemm
     SHARED
       ${SOURCES}
-      ${SRC}/../pyfastkron/pywrapper.cpp
+      ${SRC}/../pymodule/pyoptgemm.cpp
       ${HEADER_FILES}
       ${KERNEL_HEADER_FILES}
       ${CUDA_HEADER_FILES})

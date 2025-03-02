@@ -41,7 +41,7 @@ def generate_kernels():
   kernels = [KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1)]
   kernel_includes = ['#include "cuda/ampere/ampere_gemm_kernel.h"']
   kernel_decls = kernel_includes
-  kernel_array = ["GemmKernel* AllAmpereKernels[] = {"]
+  kernel_array = ["CudaGemmKernel* AllAmpereKernels[] = {"]
   kernel_cmake = []
 
   for kernel in kernels:
