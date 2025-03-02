@@ -2,12 +2,19 @@
 
 #include "cuda/cuda_backend.h"
 
-void CudaBackend::gemm(int M, int N, int K,
+void CudaBackend::gemm(GemmShape gemmShape,
                        float alpha, float beta,
                        const void* A, int ldA, OptGemmOp opA,
                        const void* B, int ldB, OptGemmOp opB,
                        void* C, int ldC) {
-  return AllAmpereKernels[0]->launch(M, N, K,
+  CudaGemmKernel* kernel;
+
+  auto it = GemmShapeToAmpereKernel.find(gemmShape);
+  if (it == GemmShapeToAmpereKernel.end()) {
+    it = GemmShapeToAmpereKernel.find(GemmShape());
+  }
+
+  return it->second->launch(gemmShape.m(), gemmShape.n(), gemmShape.k(),
                                      alpha, beta,
                                      A, ldA,
                                      B, ldB,
