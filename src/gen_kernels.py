@@ -2,8 +2,8 @@ import argparse
 import os
 
 def cutlass_type(ty):
-  if ty == "float": return "float"
-  if ty == "half": return "cutlass::half_t"
+  if ty == "float": return "OptGemmFloat"
+  if ty == "half": return "OptGemmHalf"
   assert False, f"Unknown type {ty}"
 
 def cutlass_shape(shape):
@@ -32,16 +32,16 @@ class KernelConfig:
     return f"ampere_{self.elemA}_{self.elemB}_{self.elemC}_{self.cta[0]}x{self.cta[1]}x{self.cta[2]}_{self.warp[0]}x{self.warp[1]}x{self.warp[2]}_{self.stages}_{self.split_k_slices}_{self.opA}{self.opB}{self.opC}"
 
 def generate_kernels():
-  kernel_out_dir = os.path.join(os.path.dirname(__file__), "ampere/kernels/")
+  kernel_out_dir = os.path.join(os.path.dirname(__file__), "cuda/ampere/kernels/")
   kernel_decl_file = os.path.join(kernel_out_dir, "kernel_decl.h")
 
   if not os.path.exists(kernel_out_dir):
     os.makedirs(kernel_out_dir, exist_ok=True)
 
   kernels = [KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1)]
-  kernel_includes = ['#include "ampere/ampere_gemm_kernel.h"']
+  kernel_includes = ['#include "cuda/ampere/ampere_gemm_kernel.h"']
   kernel_decls = kernel_includes
-  kernel_array = ["void* AllAmpereKernels[] = {"]
+  kernel_array = ["GemmKernel* AllAmpereKernels[] = {"]
   kernel_cmake = []
 
   for kernel in kernels:

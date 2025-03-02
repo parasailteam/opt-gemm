@@ -1,7 +1,9 @@
+#include <type_traits>
+
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm.h"
 
-#include "opt_gemm.h"
+#include "cuda/cuda_kernel.h"
 
 #pragma once
 
@@ -26,16 +28,25 @@ using ShapeMMAOp = cutlass::gemm::GemmShape<16, 8, 16>;  // <- MMA Op tile M = 1
 
 // This code section describes the epilogue part of the kernel
 
-template<typename ElementA, typename ElementB, typename ElementC, typename ElementAccumulator,
+template<OptGemmElemType ElementType>
+using conditional_type = typename std::conditional<ElementType == OptGemmHalf, cutlass::half_t, float>::type;
+
+template<OptGemmElemType OptGemmElemA, OptGemmElemType OptGemmElemB,
+         OptGemmElemType OptGemmElemC, OptGemmElemType OptGemmElemAccum,
          OptGemmOp OpA, OptGemmOp OpB, OptGemmOp OpC,
-         int CtaM, int CtaN, int CtaK,
-         int WarpM, int WarpN, int WarpK, 
-         int InstM, int InstN, int InstK,
-         int NumStages, int SplitKSlices = 1>
-struct AmpereGemmKernel {
+         int kCtaM, int kCtaN, int kCtaK,
+         int kWarpM, int kWarpN, int kWarpK, 
+         int kInstM, int kInstN, int kInstK,
+         int kNumStages, int kSplitKSlices = 1>
+class AmpereGemmKernel : public CudaGemmKernel {
   using LayoutA = cutlass::layout::RowMajor;
   using LayoutB = cutlass::layout::RowMajor;
   using LayoutC = cutlass::layout::RowMajor;
+
+  using ElementA = conditional_type<OptGemmElemA>;
+  using ElementB = conditional_type<OptGemmElemB>;
+  using ElementC = conditional_type<OptGemmElemC>;
+  using ElementAccumulator = conditional_type<OptGemmElemAccum>;
 
   using EpilogueOp = cutlass::epilogue::thread::LinearCombination<
     ElementC,                                     // <- data type of output matrix
@@ -55,23 +66,31 @@ struct AmpereGemmKernel {
                                           ElementAccumulator,
                                           cutlass::arch::OpClassTensorOp,
                                           cutlass::arch::Sm80,
-                                          cutlass::gemm::GemmShape<CtaM, CtaN, CtaK>,
-                                          cutlass::gemm::GemmShape<WarpM, WarpN, WarpK>,
-                                          cutlass::gemm::GemmShape<InstM, InstN, InstK>,
+                                          cutlass::gemm::GemmShape<kCtaM, kCtaN, kCtaK>,
+                                          cutlass::gemm::GemmShape<kWarpM, kWarpN, kWarpK>,
+                                          cutlass::gemm::GemmShape<kInstM, kInstN, kInstK>,
                                           EpilogueOp,
                                           cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
-                                          NumStages, 8, 8, true>;
+                                          kNumStages, 8, 8, true>;
 
   using TensorRefA = cutlass::TensorRef<ElementA, LayoutA>;
   using TensorRefB = cutlass::TensorRef<ElementB, LayoutB>;
   using TensorRefC = cutlass::TensorRef<ElementC, LayoutC>;
   
+public:
+  AmpereGemmKernel() :
+    CudaGemmKernel(CudaArchAmpere,
+                   OptGemmElemA, OptGemmElemB, OptGemmElemC, OptGemmElemAccum,
+                   OpA, OpB, OpC,
+                   kCtaM, kCtaN, kCtaK, kWarpM, kWarpN, kWarpK,
+                   kInstM, kInstN, kInstK, kNumStages, kSplitKSlices) {}
+
   typename Gemm::Arguments arguments(uint M, uint N, uint K,
                                      ElementAccumulator alpha,
                                      ElementAccumulator beta,
-                                     const void* A, uint ldA,
-                                     const void* B, uint ldB,
-                                     void* C, uint ldC) {
+                                     ElementA* A, uint ldA,
+                                     ElementB* B, uint ldB,
+                                     ElementC* C, uint ldC) {
     cutlass::gemm::GemmCoord problem_size = cutlass::gemm::GemmCoord(M, N, K);
     typename Gemm::Arguments args{problem_size,
                                   TensorRefA(A, LayoutA(ldA)),
@@ -83,29 +102,32 @@ struct AmpereGemmKernel {
     return args;
   }
 
-  cutlass::Status launch(uint M, uint N, uint K,
-                         ElementAccumulator alpha,
-                         ElementAccumulator beta,
-                         const void* A, uint ldA,
-                         const void* B, uint ldB,
-                         void* C, uint ldC, void* workspace) {
+  virtual void launch(int M, int N, int K,
+                         float alpha,
+                         float beta,
+                         const void* A, int ldA,
+                         const void* B, int ldB,
+                         void* C, int ldC, void* workspace) {
     Gemm gemm_op;
     
-    auto args = arguments(M, N, K, alpha, beta, A, ldA, B, ldB, C, ldC);
+    auto args = arguments(M, N, K, alpha, beta,
+                          (ElementA*)A, ldA,
+                          (ElementB*)B, ldB,
+                          (ElementC*)C, ldC);
     
     cutlass::Status status = gemm_op.can_implement(args);
-    if (status != cutlass::Status::kSuccess) return status;
+    // if (status != cutlass::Status::kSuccess) return status;
 
     status = gemm_op.initialize(args, workspace);
-    if (status != cutlass::Status::kSuccess) return status;
+    // if (status != cutlass::Status::kSuccess) return status;
 
     // Launch initialized CUTLASS kernel
-    return gemm_op();
+    gemm_op();
   }
 
-  size_t get_workspace_size(uint M, uint N, uint K,
-                            ElementAccumulator alpha,
-                            ElementAccumulator beta) {
+  virtual size_t workspace_size(int M, int N, int K,
+                            float alpha,
+                            float beta) {
     return Gemm::get_workspace_size(arguments(M, N, K, alpha, beta, 
                                               nullptr, K, nullptr, N,
                                               nullptr, N));

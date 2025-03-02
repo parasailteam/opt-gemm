@@ -68,7 +68,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -march=x86-64-v2 -O3 ${WARNING_F
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -march=x86-64-v2 ${WARNING_FLAGS}")
 
 set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(CUDA ${SRC})
+set(CUDA ${SRC}/cuda)
 
 set(KERNEL_HEADER_FILES)
 set(GEMM_LIB_DIR)
@@ -113,7 +113,7 @@ set(HEADER_FILES
     )
 
 set(SOURCES
-    ${SRC}/opt_gemm.cu)
+    ${SRC}/opt_gemm.cpp)
 
 if (PYMODULE)
   ## PyBind ##

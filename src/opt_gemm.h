@@ -8,4 +8,4 @@ enum OptGemmOp {
 enum OptGemmElemType {
   OptGemmHalf,
   OptGemmFloat,
-}
+};
