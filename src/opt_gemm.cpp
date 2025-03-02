@@ -7,12 +7,12 @@ CudaBackend cudaBackend;
 
 void gemm(int M, int N, int K,
           float alpha, float beta,
-          const void* A, int ldA,
-          const void* B, int ldB,
+          const void* A, int ldA, OptGemmOp opA,
+          const void* B, int ldB, OptGemmOp opB,
           void* C, int ldC) {
   cudaBackend.gemm(M, N, K, 
                    alpha, beta,
-                   A, ldA,
-                   B, ldB,
+                   A, ldA, opA,
+                   B, ldB, opB,
                    C, ldC);
 }

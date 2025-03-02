@@ -126,7 +126,7 @@ if (PYMODULE)
   pybind11_add_module(OptGemm
     SHARED
       ${SOURCES}
-      ${SRC}/../pymodule/pyoptgemm.cpp
+      ${SRC}/../pyoptgemm/pyoptgemm.cpp
       ${HEADER_FILES}
       ${KERNEL_HEADER_FILES}
       ${CUDA_HEADER_FILES})

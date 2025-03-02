@@ -17,15 +17,18 @@ PYBIND11_MODULE(OptGemm, m)
   // OptGemmElemType
 
   py::enum_<OptGemmOp>(m, "Op", py::module_local())
-    .value("N", OptGemmOp_N)
-    .value("T", OptGemmOp_T)
+    .value("OpN", OptGemmOp_N)
+    .value("OpT", OptGemmOp_T)
     .export_values();
 
   m.def("hgemm", [](int M, int N, int K,
                     float alpha, float beta,
-                    long A, int ldA, 
-                    long B, int ldB,
+                    long A, int ldA, OptGemmOp opA,
+                    long B, int ldB, OptGemmOp opB,
                     long C, int ldC) {
-    gemm(M, N, K, alpha, beta, (const void*)A, ldA, (const void*)B, ldB, (void*)C, ldC);
+    // gemm(M, N, K, alpha, beta,
+    //      (const void*)A, ldA, opA,
+    //      (const void*)B, ldB, opB,
+    //      (void*)C, ldC);
   }, "HGEMM");
 }

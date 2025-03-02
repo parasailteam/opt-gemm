@@ -5,7 +5,7 @@ public:
 
   void gemm(int M, int N, int K,
             float alpha, float beta,
-            const void* A, int ldA,
-            const void* B, int ldB,
+            const void* A, int ldA, OptGemmOp opA,
+            const void* B, int ldB, OptGemmOp opB,
             void* C, int ldC);
 };
