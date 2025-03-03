@@ -6,7 +6,7 @@
 #include "utils/logger.h"
 
 namespace env {
-  #define ENV_OPTGEMM(x) "_" x;
+  #define ENV_OPTGEMM(x) "OPTGEMM_" x;
 
   static char LOGLEVEL[]  = ENV_OPTGEMM("LOG");
 

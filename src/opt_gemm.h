@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <string>
 
 #pragma once
 
@@ -33,6 +34,9 @@ template<>
 struct std::hash<GemmShape> {
   std::size_t operator()(const GemmShape& k) const;
 };
+
+std::string strOfOptGemmElemType(OptGemmElemType elemType);
+std::string strOfOptGemmOp(OptGemmOp op);
 
 extern "C" {
 void gemm(int M, int N, int K,

@@ -12,6 +12,22 @@ std::size_t std::hash<GemmShape>::operator()(const GemmShape& problem) const {
   return h;
 }
 
+std::string strOfOptGemmElemType(OptGemmElemType elemType) {
+  if (elemType == OptGemmFloat) {
+    return "f32";
+  } else if (elemType == OptGemmHalf) {
+    return "f16";
+  }
+}
+
+std::string strOfOptGemmOp(OptGemmOp op) {
+  if (op == OptGemmOp_N) {
+    return "N";
+  } else if (op == OptGemmOp_T) {
+    return "T";
+  }
+}
+
 void gemm(int M, int N, int K,
           float alpha, float beta,
           const void* A, int ldA, OptGemmOp opA,

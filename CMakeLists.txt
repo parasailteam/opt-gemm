@@ -118,7 +118,10 @@ set(HEADER_FILES
 
 set(SOURCES
     ${CUDA_SOURCES}
-    ${SRC}/opt_gemm.cpp)
+    ${SRC}/opt_gemm.cpp
+    ${SRC}/env/env.h
+    ${SRC}/env/env.cpp
+    ${SRC}/utils/logger.h)
 
 if (PYMODULE)
   ## PyBind ##

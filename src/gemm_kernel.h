@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <sstream>
 
 #include "opt_gemm.h"
 
@@ -46,6 +47,7 @@ public:
   virtual void launch(int M, int N, int K,
                       float alpha, float beta,
                       const void* A, int ldA,
+
                       const void* B, int ldB,
                       void* C, int ldC,
                       void* workspace) = 0;
@@ -53,4 +55,14 @@ public:
   virtual size_t workspace_size(int M, int N, int K,
                                 float alpha, float beta) = 0;
   
+  virtual std::string str() {
+    std::stringstream info;
+    info << "_" << strOfOptGemmElemType(elemA) 
+         << "_" << strOfOptGemmElemType(elemAccum)
+         << "_" << CtaM << "x" << CtaN << "x" << CtaK 
+         << "_" << WarpM << "x" << WarpN << "x" << WarpK
+         << "_" << InstM << "x" << InstN << "x" << InstK 
+         << "_" << NumStages << "_" << SplitKSlices;
+    return info.str();;
+  } 
 };
