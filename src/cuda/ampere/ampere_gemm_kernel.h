@@ -71,12 +71,14 @@ class AmpereGemmKernel : public CudaGemmKernel {
                                           cutlass::gemm::GemmShape<kInstM, kInstN, kInstK>,
                                           EpilogueOp,
                                           cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
-                                          kNumStages, 8, 8, true>;
+                                          kNumStages, 8, 8, (kSplitKSlices > 1)>;
 
   using TensorRefA = cutlass::TensorRef<ElementA, LayoutA>;
   using TensorRefB = cutlass::TensorRef<ElementB, LayoutB>;
   using TensorRefC = cutlass::TensorRef<ElementC, LayoutC>;
   
+  Gemm gemm_op;
+
 public:
   AmpereGemmKernel() :
     CudaGemmKernel(CudaArchAmpere,
@@ -108,17 +110,15 @@ public:
                          const void* A, int ldA,
                          const void* B, int ldB,
                          void* C, int ldC, void* workspace) {
-    Gemm gemm_op;
-    
     auto args = arguments(M, N, K, alpha, beta,
                           (ElementA*)A, ldA,
                           (ElementB*)B, ldB,
                           (ElementC*)C, ldC);
     
-    cutlass::Status status = gemm_op.can_implement(args);
+    // cutlass::Status status = gemm_op.can_implement(args);
     // if (status != cutlass::Status::kSuccess) return status;
 
-    status = gemm_op.initialize(args, workspace);
+    gemm_op.initialize(args, workspace);
     // if (status != cutlass::Status::kSuccess) return status;
 
     // Launch initialized CUTLASS kernel
