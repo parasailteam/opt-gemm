@@ -50,10 +50,10 @@ AmpereKernels = {
   GemmShape()                  : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1),
   
   #Phi-3-mini
-  GemmShape(2048, 16384, 3072) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(2048, 16384, 3072) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
   
   #Phi-3-mini-C-23%
-  GemmShape(2048, 16384, 1792) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(2048, 16384, 1792) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
   GemmShape(2048, 1792,  3072) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
 }
 
