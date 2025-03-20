@@ -10,18 +10,21 @@ def cutlass_shape(shape):
   return f"{shape[0]}, {shape[1]}, {shape[2]}"
 
 class GemmShape:
-  def __init__(self, m=0, n=0, k=0):
+  def __init__(self, m=0, n=0, k=0, opA="N", opB="N", opC="N"):
     self.m = m
     self.k = k
     self.n = n
-  
+    self.opA = opA
+    self.opB = opB
+    self.opC = opC
+
   def __str__(self):
-    return f"{m}x{n}x{k}"
+    return f"{m}x{n}x{k}_{self.opA}{self.opB}{self.opC}"
 
   def cpp_object(self):
     if self.m == 0 and self.n == 0 and self.k == 0:
-      return "GemmShape()"
-    return f"GemmShape({self.m}, {self.n}, {self.k})"
+      return f"GemmShape(OptGemmOp::OptGemmOp_{self.opA}, OptGemmOp::OptGemmOp_{self.opB}, OptGemmOp::OptGemmOp_{self.opC})"
+    return f"GemmShape({self.m}, {self.n}, {self.k}, OptGemmOp::OptGemmOp_{self.opA}, OptGemmOp::OptGemmOp_{self.opB}, OptGemmOp::OptGemmOp_{self.opC})"
 
 class KernelConfig:
   def __init__(self, elemA, elemB, elemC, elemAccum, opA, opB, opC, arch, cta, warp, mma, stages, split_k_slices):
@@ -47,14 +50,19 @@ class KernelConfig:
 
 AmpereKernels = {
   #Default Kernel
-  GemmShape()                  : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1),
-  
+  GemmShape(opA="N", opB="T", opC="N")  : KernelConfig("half", "half", "half", "float", "N", "T", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(opA="N", opB="N", opC="N")  : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [256,128,32], [64,64,32], [16,8,16], 4, 1),
+
   #Phi-3-mini
-  GemmShape(2048, 16384, 3072) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
-  
+  GemmShape(2048, 16384, 3072, opB="T") : KernelConfig("half", "half", "half", "float", "N", "T", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(2048, 16384, 3072, opB="N") : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
+
   #Phi-3-mini-C-23%
-  GemmShape(2048, 16384, 1792) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
-  GemmShape(2048, 1792,  3072) : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(2048, 16384, 1792, opB="T") : KernelConfig("half", "half", "half", "float", "N", "T", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(2048, 1792,  3072, opB="T") : KernelConfig("half", "half", "half", "float", "N", "T", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
+
+  GemmShape(2048, 16384, 1792, opB="N") : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
+  GemmShape(2048, 1792,  3072, opB="N") : KernelConfig("half", "half", "half", "float", "N", "N", "N", 80, [128,128,32], [64,64,32], [16,8,16], 4, 1),
 }
 
 def generate_kernels():
@@ -65,15 +73,20 @@ def generate_kernels():
     os.makedirs(kernel_out_dir, exist_ok=True)
 
   kernel_includes = ['#include "cuda/ampere/ampere_gemm_kernel.h"', '#include <unordered_map>']
-  kernel_decls = kernel_includes
+  kernel_decls = list(kernel_includes)
   kernel_array = ["CudaGemmKernel* AllAmpereKernels[] = {"]
   kernel_cmake = []
   shape_to_kernel_map = ["std::unordered_map<GemmShape, CudaGemmKernel*> GemmShapeToAmpereKernel = {"]
+  kernel_generated = set()
 
   for shape,kernel in AmpereKernels.items():
+    shape_to_kernel_map += [f"{{{shape.cpp_object()}, &{kernel.object_name()}}}"]
+    if kernel.object_name() not in kernel_generated:
+      kernel_generated.add(kernel.object_name())
+    else:
+      continue
     kernel_decls += ["extern " + kernel.template_decl() + " " + kernel.object_name() + ";"]
     kernel_array += ["&"+kernel.object_name()]
-    shape_to_kernel_map += [f"{{{shape.cpp_object()}, &{kernel.object_name()}}}"]
 
     with open(os.path.join(kernel_out_dir, kernel.object_name()+".cu"), "w") as f:
       kernel_object_init = kernel_includes + [kernel.template_decl() + " " + kernel.object_name() + ";"]

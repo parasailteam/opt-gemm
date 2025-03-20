@@ -11,7 +11,7 @@ void CudaBackend::gemm(GemmShape gemmShape,
 
   auto it = GemmShapeToAmpereKernel.find(gemmShape);
   if (it == GemmShapeToAmpereKernel.end()) {
-    it = GemmShapeToAmpereKernel.find(GemmShape());
+    it = GemmShapeToAmpereKernel.find(GemmShape(opA, opB, OptGemmOp_N));
   }
 
   Logger(LogLevel::Info) << "Launching " << it->second->str() << std::endl;

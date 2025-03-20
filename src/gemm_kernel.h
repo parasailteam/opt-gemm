@@ -62,7 +62,8 @@ public:
          << "_" << CtaM << "x" << CtaN << "x" << CtaK 
          << "_" << WarpM << "x" << WarpN << "x" << WarpK
          << "_" << InstM << "x" << InstN << "x" << InstK 
-         << "_" << NumStages << "_" << SplitKSlices;
+         << "_" << NumStages << "_" << SplitKSlices << "_"
+         << strOfOptGemmOp(opA) << strOfOptGemmOp(opB) << strOfOptGemmOp(opC);
     return info.str();;
   } 
 };

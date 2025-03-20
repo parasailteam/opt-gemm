@@ -31,6 +31,11 @@ using ShapeMMAOp = cutlass::gemm::GemmShape<16, 8, 16>;  // <- MMA Op tile M = 1
 template<OptGemmElemType ElementType>
 using conditional_type = typename std::conditional<ElementType == OptGemmHalf, cutlass::half_t, float>::type;
 
+template<OptGemmOp Op>
+using conditional_layout = typename std::conditional<Op == OptGemmOp::OptGemmOp_N,
+                                                     cutlass::layout::RowMajor,
+                                                     cutlass::layout::ColumnMajor>::type;
+
 template<OptGemmElemType OptGemmElemA, OptGemmElemType OptGemmElemB,
          OptGemmElemType OptGemmElemC, OptGemmElemType OptGemmElemAccum,
          OptGemmOp OpA, OptGemmOp OpB, OptGemmOp OpC,
@@ -39,9 +44,9 @@ template<OptGemmElemType OptGemmElemA, OptGemmElemType OptGemmElemB,
          int kInstM, int kInstN, int kInstK,
          int kNumStages, int kSplitKSlices = 1>
 class AmpereGemmKernel : public CudaGemmKernel {
-  using LayoutA = cutlass::layout::RowMajor;
-  using LayoutB = cutlass::layout::RowMajor;
-  using LayoutC = cutlass::layout::RowMajor;
+  using LayoutA = conditional_layout<OpA>;
+  using LayoutB = conditional_layout<OpB>;
+  using LayoutC = conditional_layout<OpC>;
 
   using ElementA = conditional_type<OptGemmElemA>;
   using ElementB = conditional_type<OptGemmElemB>;
@@ -96,9 +101,9 @@ public:
     cutlass::gemm::GemmCoord problem_size = cutlass::gemm::GemmCoord(M, N, K);
     typename Gemm::Arguments args{problem_size,
                                   TensorRefA(A, LayoutA(ldA)),
-                                  TensorRefA(B, LayoutA(ldB)),
-                                  TensorRefA(C, LayoutA(ldC)),
-                                  TensorRefA(C, LayoutA(ldC)),
+                                  TensorRefB(B, LayoutB(ldB)),
+                                  TensorRefC(C, LayoutC(ldC)),
+                                  TensorRefC(C, LayoutC(ldC)),
                                   {alpha, beta},
                                   SplitKSlices};
     return args;
